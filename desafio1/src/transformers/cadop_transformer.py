@@ -109,8 +109,8 @@ class ExpenseConsolidator:
         # Ensure numeric values
         df_merged['ValorDespesas'] = pd.to_numeric(df_merged['ValorDespesas'], errors='coerce')
         
-        # Handle suspicious values (<= 0 or NaN)
-        suspicious_mask = (df_merged['ValorDespesas'] <= 0) | (df_merged['ValorDespesas'].isna())
+        # Handle suspicious values (NaN)
+        suspicious_mask = df_merged["ValorDespesas"].isna() 
         suspicious_count = suspicious_mask.sum()
         if suspicious_count > 0:
             logger.warning(f"SUSPICIOUS VALUES: {suspicious_count} records with non-positive or invalid amounts")
