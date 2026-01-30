@@ -1,0 +1,15 @@
+
+{
+  "typeCheckingMode": "standard",
+  "pythonVersion": "3.12",
+  "venvPath": ".",
+  "venv": ".venv",
+  "reportMissingTypeStubs": false,
+  "reportUnknownMemberType": "warning",
+  "reportUnknownVariableType": "warning",
+  "exclude": [
+    "**/__pycache__",
+    ".venv"
+  ]
+}
+

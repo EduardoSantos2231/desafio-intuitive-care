@@ -22,9 +22,9 @@ class FileDownloader:
                             if chunk:
                                 f.write(chunk)
 
-            logger.info(f"Download concluído: {filename}")
+            logger.info(f"Download completed: {filename}")
             return dest_path
         except Exception as e:
-            logger.error(f"Falha ao baixar {url}: {e}")
+            logger.error(f"Something went wrong at {url}: {e}")
             return None
 

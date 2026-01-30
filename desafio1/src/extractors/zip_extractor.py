@@ -7,11 +7,11 @@ logger = logging.getLogger(__name__)
 class FileExtractor:
     @staticmethod
     def process_directory(directory: Path) -> None:
-        """Extrai todos os zips de uma pasta e os remove."""
+        """Extract all files from a given folder"""
         for zip_path in directory.glob("*.zip"):
             try:
                 shutil.unpack_archive(zip_path, directory)
-                logger.info(f"Extraído: {zip_path.name}")
+                logger.info(f"Extracted: {zip_path.name}")
                 zip_path.unlink()
             except Exception as e:
-                logger.error(f"Erro ao extrair {zip_path.name}: {e}")
+                logger.error(f"Error during extraction: {zip_path.name}: {e}")
