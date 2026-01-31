@@ -6,7 +6,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
-desafio1/rawFiles/
+desafio1/raw/
 desafio1/output/
 # C extensions
 *.so
