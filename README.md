@@ -1,8 +1,10 @@
 # Desafio - Intuitive Care
 
 ## Tecnologias
-> Python 
-> POSTGRESql 
+> Python
+
+> POSTGRESql
+
 > VueJs
 
 ## Importante !
@@ -13,14 +15,29 @@ decisões podem ser encontradas nas sessões à qual pertence a etapa;
 ## Estrutura do monorepo:
 
 ```
-
-```
-
-````
-```
-```
-```
-```
+.
+├── desafio1
+│   ├── main.py
+│   ├── pyrightconfig.json
+│   ├── requirements.txt
+│   └── src
+│       ├── ingestion
+│       │   ├── crawler.py
+│       │   ├── downloader.py
+│       │   └── zip_extractor.py
+│       ├── __init__.py
+│       ├── processing
+│       │   ├── base_processor.py
+│       │   ├── csv_processor.py
+│       │   ├── factory_processor.py
+│       │   └── txt_processor.py
+│       └── transformation
+│           ├── accounting_transformer.py
+│           ├── cadop_cleaner.py
+│           ├── expense_calculator.py
+│           ├── output_manager.py
+│           └── pipeline.py
+└── README.md
 ```
 
 ## Arquitetura e Decisões Técnicas (Etapa 1)
@@ -42,6 +59,10 @@ Esta etapa projeto automatiza o processo de ETL (Extração, Transformação e C
 ##### ⚖️ Decisões Técnicas (Trade-offs)
 
 * **Motivação do Grupo 41 (Sinistros):** O foco exclusivo no prefixo "41" deve-se ao fato de representarem os **Eventos Indenizáveis (Sinistros)**. Diferente de despesas administrativas, o Grupo 41 revela o custo real da assistência à saúde, sendo o principal indicador de solvência e eficiência de uma operadora.
+
+<img width="993" height="323" alt="image" src="https://github.com/user-attachments/assets/6ed6ff86-bef1-4dff-93d9-12cd34763caf" />
+
+
 * **Performance (Chunking):** O uso de `chunksize` no Pandas garante que o pipeline processe milhões de registros sem ultrapassar o limite de RAM da máquina, tornando o sistema escalável para volumes massivos de dados.
-* **Consolidação por CNPJ:** Optamos por agrupar os dados por CNPJ/Ano/Trimestre. Isso unifica diferentes registros de uma mesma empresa, entregando uma visão consolidada da saúde financeira da entidade jurídica.
+* **Consolidação por CNPJ:** Agrupei os dados por CNPJ/Ano/Trimestre. Isso unifica diferentes registros de uma mesma empresa, entregando uma visão consolidada da saúde financeira da entidade jurídica.
 
