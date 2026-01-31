@@ -1,125 +1,75 @@
-import pandas as pd
 import logging
 from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor
 
-from src.extractors.downloader import FileDownloader
-from src.extractors.zip_extractor import FileExtractor
-from src.extractors.crawler import AccountingCrawler, ActiveOperatorsCrawler
-from src.processors.factory_processor import ProcessorFactory
-from src.transformers.cadop_transformer import run_expense_consolidation_pipeline 
+from src.ingestion.crawler import AccountingCrawler, ActiveOperatorsCrawler
+from src.ingestion.downloader import FileDownloader
+from src.ingestion.zip_extractor import FileExtractor
+from src.processing.factory_processor import ProcessorFactory
+from src.transformation.pipeline import ExpenseConsolidationPipeline
 
-# Configuration
 ACCOUNTING_URL = "https://dadosabertos.ans.gov.br/FTP/PDA/demonstracoes_contabeis/"
 CADOP_URL = "https://dadosabertos.ans.gov.br/FTP/PDA/operadoras_de_plano_de_saude_ativas/"
 
-OUTPUT_FOLDER = Path("rawFiles")
-CONSOLIDATED_OUTPUT = Path("output/grupo41_consolidado.csv")
+RAW_DIR = Path("raw")
+OUTPUT_DIR = Path("output")
+CONSOLIDATED_ACCOUNTING_FILE = OUTPUT_DIR / "grupo41_consolidado.csv"
+FINAL_OUTPUT_FILE = OUTPUT_DIR / "consolidado_despesas.csv"
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
 def main() -> None:
-    logger.info("Starting ANS data pipeline...")
+    """Orchestrates the full ANS data pipeline using class instances."""
+    logger.info("🚀 Starting ANS data pipeline...")
 
-    urls = collect_all_target_urls()
-    if not urls:
-        logger.error("No files found in any source. Exiting.")
-        return
+    # Ensure directories exist
+    RAW_DIR.mkdir(exist_ok=True)
+    OUTPUT_DIR.mkdir(exist_ok=True)
 
-    download_files(urls)
-    extract_all()
-    process_and_report()
-
-    logger.info("Pipeline completed successfully.")
-    transform_table()
-    return None
-
-
-def transform_table() -> None:
-    """Carrega e consolida os dados finais."""
-    try:
-        df_contabil = pd.read_csv(
-            "output/grupo41_consolidado.csv",
-            sep=";",
-            encoding="utf-8-sig",
-            dtype=str
-        )
-        
-        df_cadop = pd.read_csv(
-            "rawFiles/Relatorio_cadop.csv",
-            sep=";",                    
-            encoding="utf-8-sig",          
-            dtype=str,
-            on_bad_lines='skip',        
-            skip_blank_lines=True       
-        )
-        
-        logger.info(f"Dados carregados: {len(df_contabil)} contábil, {len(df_cadop)} CADOP")
-        
-        
-        run_expense_consolidation_pipeline(df_contabil, df_cadop)
-        
-    except FileNotFoundError as e:
-        logger.error(f"Arquivo não encontrado: {e}")
-    except Exception as e:
-        logger.error(f"Erro ao carregar dados: {e}")
-
-
-def collect_all_target_urls() -> list[str]:
-    """Orchestrates crawlers to collect URLs from both ANS data sources."""
+    # === STEP 1: CRAWLING ===
+    logger.info("🔍 Discovering source files...")
     accounting_crawler = AccountingCrawler(base_url=ACCOUNTING_URL, max_files=3)
-    accounting_urls = accounting_crawler.get_urls()
-    logger.info(f"Found {len(accounting_urls)} accounting files.")
-
     cadop_crawler = ActiveOperatorsCrawler(base_url=CADOP_URL)
-    cadop_urls = cadop_crawler.get_urls()
-    logger.info(f"Found {len(cadop_urls)} CADOP file(s).")
+    
+    urls = accounting_crawler.get_urls() + cadop_crawler.get_urls()
+    logger.info(f"📁 Found {len(urls)} files to download")
 
-    return accounting_urls + cadop_urls
-
-
-def download_files(urls: list[str]) -> None:
-    """Downloads all files concurrently using a thread pool."""
-    def _download(url: str) -> Path | None:
-        return FileDownloader.download(url, OUTPUT_FOLDER)
-
-    logger.info(f"Starting download of {len(urls)} files...")
-    with ThreadPoolExecutor(max_workers=3) as executor:
-        list(executor.map(_download, urls))
-
-
-def extract_all() -> None:
-    """Extracts all ZIP files in the output folder."""
-    FileExtractor.process_directory(OUTPUT_FOLDER)
-
-
-def process_and_report() -> None:
-    """Processes all extracted files and generates a consolidated output."""
-    if not any(OUTPUT_FOLDER.iterdir()):
-        logger.warning("Output folder 'rawFiles' is empty. Nothing to process.")
+    if not urls:
+        logger.error("❌ No files found. Exiting.")
         return
 
-    CONSOLIDATED_OUTPUT.parent.mkdir(exist_ok=True)
-    if CONSOLIDATED_OUTPUT.exists():
-        CONSOLIDATED_OUTPUT.unlink()
+    # === STEP 2: DOWNLOAD ===
+    logger.info("📥 Downloading files...")
+    downloader = FileDownloader()
+    for url in urls:
+        downloader.download(url, RAW_DIR)
+    logger.info("✅ All downloads completed")
 
-    processed_count = 0
-    for file_path in OUTPUT_FOLDER.iterdir():
-        if not file_path.is_file():
-            continue
+    # === STEP 3: EXTRACTION ===
+    logger.info("📦 Extracting archives...")
+    extractor = FileExtractor()
+    extractor.process_directory(RAW_DIR)
+    logger.info("✅ All archives extracted")
 
-        try:
-            processor = ProcessorFactory.create(file_path, CONSOLIDATED_OUTPUT)
-            if processor.process(file_path):
-                processed_count += 1
-                logger.info(f"Processed data from: {file_path.name}")
-        except Exception as e:
-            logger.error(f"Failed to process {file_path.name}: {e}")
+    # === STEP 4: ACCOUNTING PROCESSING ===
+    logger.info("🧹 Processing accounting data...")
+    factory = ProcessorFactory()
+    factory.process_all_files(
+        input_dir=RAW_DIR,
+        output_file=CONSOLIDATED_ACCOUNTING_FILE
+    )
+    logger.info("✅ Accounting data processed")
 
-    logger.info(f"Consolidated output saved to: {CONSOLIDATED_OUTPUT.resolve()}")
-    logger.info(f"Total files with relevant data: {processed_count}")
+    # === STEP 5: FINAL CONSOLIDATION ===
+    logger.info("📊 Consolidating final dataset...")
+    consolidator = ExpenseConsolidationPipeline()
+    consolidator.run(
+        accounting_file=CONSOLIDATED_ACCOUNTING_FILE,
+        cadop_file=RAW_DIR / "Relatorio_cadop.csv",
+        output_file=FINAL_OUTPUT_FILE
+    )
+    logger.info("✅ Pipeline completed successfully!")
 
 
 if __name__ == "__main__":
