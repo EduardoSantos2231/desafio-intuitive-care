@@ -5,8 +5,8 @@
   "venvPath": ".",
   "venv": ".venv",
   "reportMissingTypeStubs": false,
-  "reportUnknownMemberType": "warning",
-  "reportUnknownVariableType": "warning",
+  "reportUnknownMemberType": false,
+  "reportUnknownVariableType": false,
   "exclude": [
     "**/__pycache__",
     ".venv"
