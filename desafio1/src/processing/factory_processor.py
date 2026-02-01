@@ -44,5 +44,5 @@ class ProcessorFactory:
                     if success and not header_written:
                         header_written = True
                 except Exception as e:
-                    logger.error("Something wen wrong during the processing: ", e) 
+                    logger.error("Something went wrong during the processing") 
                     pass
