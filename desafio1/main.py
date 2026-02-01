@@ -41,10 +41,10 @@ def main() -> None:
 
     # === STEP 2: DOWNLOAD ===
     logger.info("📥 Downloading files...")
-    downloader = FileDownloader()
-    for url in urls:
-        downloader.download(url, RAW_DIR)
-    logger.info("✅ All downloads completed")
+    with FileDownloader(timeout=(5, 60)) as downloader:
+        for url in urls:
+            downloader.download(url, RAW_DIR)
+
 
     # === STEP 3: EXTRACTION ===
     logger.info("📦 Extracting archives...")
