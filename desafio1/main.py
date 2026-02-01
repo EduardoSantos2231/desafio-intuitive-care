@@ -44,7 +44,7 @@ def main() -> None:
     with FileDownloader(timeout=(5, 60)) as downloader:
         for url in urls:
             downloader.download(url, RAW_DIR)
-
+    logger.info("✅ All downloads completed")
 
     # === STEP 3: EXTRACTION ===
     logger.info("📦 Extracting archives...")
