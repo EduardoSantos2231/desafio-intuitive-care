@@ -63,38 +63,78 @@ python main.py
 └── README.md
 ```
 
-## Arquitetura e Decisões Técnicas (Etapa 1)
-
-Abaixo constam as documentações de cada etapa e decisões tomadas de acordo com a enumeração contida no PDF do desafio;
-
-#### 1.0
-
-Esta etapa projeto automatiza o processo de ETL (Extração, Transformação e Carga) das demonstrações contábeis da ANS, focado em isolar e consolidar as despesas assistenciais (Sinistros) das operadoras de saúde.
 
 
-##### 🛠️ Fluxo de Execução
+# Arquitetura e Decisões Técnicas
 
-1. **Ingestão:** O crawler identifica e baixa os 3 últimos trimestres contábeis e a base cadastral (CADOP).
+## **1.0 – Pipeline ETL (Desafio 1)**
 
-2. **Processamento (Streaming & Chunks):** Arquivos são lidos em pedaços de 150 mil linhas via `CsvProcessor`. Os dados filtrados são gravados em tempo real em um arquivo único através de um `output_stream`, evitando gargalos de memória e disco.
+### **Crawling Resiliente a Estruturas Variáveis**
+- **Decisão**: Implementar crawler que navega pela estrutura de diretórios da ANS (`YYYY/QQ/`) e identifica arquivos por padrão de nome, não por caminho fixo.
+- **Justificativa**: A ANS pode alterar periodicamente a organização dos arquivos; abordagem baseada em regex é mais robusta que paths hardcoded.
+- **Prós**: Funciona mesmo com mudanças na estrutura de diretórios.  
+- **Contras**: Pode capturar arquivos irrelevantes se o padrão for muito genérico.
 
-3. **Saneamento CADOP:** A base de operadoras é limpa, removendo duplicatas de CNPJ e priorizando o registro mais recente para garantir a fidelidade da Razão Social atualizada.
+### **Processamento Incremental (Chunking)**
+- **Decisão**: Processar arquivos em chunks de 150k linhas em vez de carregar tudo em memória.
+- **Justificativa**: Arquivos trimestrais têm ~250k linhas cada; chunking evita estouro de RAM em máquinas com recursos limitados.
+- **Prós**: Escalável; opera com footprint de memória constante.  
+- **Contras**: Complexidade adicional na lógica de streaming.
 
-4. **Consolidação:** O pipeline une os dados financeiros ao cadastro. Para registros contábeis cujos IDs não constam no CADOP, o sistema preenche o CNPJ e a Razão Social como **"NÃO ENCONTRADO"**, preservando a integridade da massa de dados para auditoria.
-
-##### ⚖️ Decisões Técnicas (Trade-offs)
-
-* **Motivação do Grupo 41 (Sinistros):** O foco exclusivo no prefixo "41" deve-se ao fato de representarem os **Eventos Indenizáveis (Sinistros)**. Diferente de despesas administrativas, o Grupo 41 revela o custo real da assistência à saúde, sendo o principal indicador de solvência e eficiência de uma operadora.
+### **Filtro por Código Contábil "41"**
+- **Decisão**: Selecionar apenas registros onde `CD_CONTA_CONTABIL` começa com `"41"`.
+- **Justificativa**: Requisito explícito do desafio: "Despesas com Eventos/Sinistros" correspondem ao Grupo 41 do plano de contas da ANS.
+- **Prós**: Foco exato no escopo solicitado; redução de 95%+ do volume de dados. 
 
 <img width="993" height="323" alt="image" src="https://github.com/user-attachments/assets/6ed6ff86-bef1-4dff-93d9-12cd34763caf" />
 
+### **Consolidação por Entidade e Período**
+- **Decisão**: Agrupar por `CNPJ + Ano + Trimestre` e somar `ValorDespesas`.
+- **Justificativa**: Múltiplos registros por operadora/trimestre devem ser consolidados em um único valor.
+- **Prós**: Saída limpa e analítica conforme exigido.  
+- **Contras**: Perda de granularidade de contas contábeis individuais.
 
-* **Performance e Escalabilidade (Chunking):** O uso de `chunksize` no Pandas permite o processamento de arquivos com milhões de registros de forma incremental, evitando a carga total dos dados em memória. Essa abordagem garante que o pipeline opere dentro dos limites de RAM da máquina, tornando-o escalável para grandes volumes de dados.
-    
-* **Consolidação com base no Trimestre:** Os dados são agrupados por CNPJ, Ano e Trimestre, unificando múltiplos registros pertencentes à mesma empresa em um único resultado consolidado. Isso fornece uma visão mais clara e consistente da saúde financeira da entidade jurídica ao longo dos trimestres.
+### **Tratamento de Inconsistências**
 
-* **Reutilização de Conexão para Download:** A sessão HTTP é mantida ativa entre os downloads, evitando a necessidade de reestabelecer uma nova conexão a cada arquivo. Essa estratégia reduz overhead de handshake, melhora a eficiência da transferência e resulta em downloads mais rápidos.
+#### **CNPJs Duplicados com Razões Sociais Diferentes**
+- **Decisão**: Manter registro mais recente do CADOP (baseado em `Data_Registro_ANS`).
+- **Justificativa**: Garante uso da razão social atualizada, evitando conflitos históricos.
+- **Prós**: Consistência temporal; alinhamento com realidade jurídica atual.  
+- **Contras**: Pode ocultar histórico de sucessões ou fusões.
 
-* **Extensibilidade para Novos Formatos de Arquivo:** O sistema foi projetado de forma extensível por meio do padrão `Processor Registry`. Novos formatos podem ser suportados simplesmente criando uma classe que herde de `BaseProcessor` e registrando-a no pipeline. Um exemplo prático dessa extensão é o `TxtProcessor`.
+#### **Valores Zerados ou Negativos**
+- **Decisão**: Preservar todos os valores sem filtragem.
+- **Justificativa**: Valores negativos representam ajustes ou recuperações; zerados indicam inatividade — ambos são informações válidas.
+- **Prós**: Integridade financeira completa.  
+- **Contras**: Requer tratamento específico em análises que consideram apenas despesas positivas.
 
-* **Processamento em Streaming:** Durante o processamento e validação das linhas, o arquivo de saída é mantido aberto e escrito de forma contínua. Isso evita ciclos repetidos de abertura e fechamento de arquivo, reduz I/O desnecessário e melhora significativamente o desempenho do pipeline.
+#### **Datas com Formatos Inconsistentes**
+- **Decisão**: Normalizar com `pd.to_datetime(format='mixed', errors='coerce')` e remover registros com `NaT`.
+- **Justificativa**: Garante extração correta de ano/trimestre para consolidação.
+- **Prós**: Robustez contra múltiplos formatos de data.  
+- **Contras**: Perda de registros com datas irrecuperáveis.
+
+---
+
+## **2.0 – Validação e Enriquecimento**
+
+### **2.1. Validação com Flags (Não Filtragem)**
+- **Decisão**: Manter todos os registros e adicionar flag `RegistroCNPJValido`.
+- **Justificativa**: Preservação integral dos dados financeiros para auditoria.
+- **Prós**: Transparência na qualidade dos dados; análise segmentada possível.  
+- **Contras**: Dataset final inclui registros potencialmente inválidos.
+
+### **2.2. Left Join com CADOP**
+- **Decisão**: Enriquecer com `UF` via left join por CNPJ; preencher não-matches com `"XX"`.
+- **Justificativa**: Volume pequeno (~1.5k registros); descarte seria perda crítica de informação.
+- **Prós**: 100% dos dados financeiros preservados; enriquecimento geográfico habilitado.  
+- **Contras**: Requer validação adicional para uso em relatórios oficiais.
+
+### **2.3. Agregação por RazaoSocial + UF**
+- **Decisão**: Agrupar por `RazaoSocial + UF` e calcular total, média trimestral e desvio padrão.
+- **Justificativa**: Volume reduzido (< 2k registros); pandas groupby é otimizado e suficiente.
+- **Prós**: Simplicidade; alinhamento com requisitos analíticos geográficos.  
+- **Contras**: Não escalável para volumes massivos (ex: > 1M registros).
+
+---
+
