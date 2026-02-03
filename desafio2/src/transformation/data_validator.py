@@ -2,7 +2,7 @@ import re
 import pandas as pd
 from pathlib import Path
 import logging
-
+from src.utils.formatting import formatar_moeda_br
 logger = logging.getLogger(__name__)
 
 
@@ -17,43 +17,30 @@ class DataValidator:
     """
 
     def validate_and_enrich(self, input_file: Path, output_file: Path) -> pd.DataFrame:
-        """
-        Loads the consolidated file, applies validations, and saves the enriched version.
-        
-        Args:
-            input_file: Path to 'consolidado_despesas.csv' from Challenge 1
-            output_file: Path to save the validated/enriched CSV
-            
-        Returns:
-            Enriched DataFrame with validation flags
-        """
         logger.info("Starting data validation and enrichment...")
 
-
-        # Load data
         df = pd.read_csv(
             input_file,
-            sep=",",
+            sep=";",
             encoding="utf-8-sig",
-            dtype=str
+            thousands=".",
+            decimal=","
         )
 
-        # Ensure numeric column
-        df["ValorDespesas"] = pd.to_numeric(df["ValorDespesas"], errors="coerce")
-
-        # Apply validations
         df = self._validate_cnpj(df)
         df = self._validate_razao_social(df)
-        df = self._validate_despesa(df)
+        df = self._validate_despesa(df)  
 
-        # Save result
+        from src.utils.formatting import formatar_moeda_br
+        df["ValorDespesas"] = df["ValorDespesas"].apply(formatar_moeda_br)
+
+        # ✅ ESCRITA
         output_file.parent.mkdir(parents=True, exist_ok=True)
         df.to_csv(
             output_file,
+            sep=";",
             index=False,
-            sep=",",
-            encoding="utf-8-sig",
-            float_format="%.2f"
+            encoding="utf-8-sig"
         )
 
         # Log summary
@@ -71,6 +58,7 @@ class DataValidator:
         )
 
         return df
+
 
     def _validate_cnpj(self, df: pd.DataFrame) -> pd.DataFrame:
         """Adds 'RegistroCNPJValido' column based on CNPJ validation."""

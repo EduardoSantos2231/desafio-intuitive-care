@@ -6,6 +6,7 @@ from src.aggregation.expense_aggregator import ExpenseAggregator
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
+
 def main():
     desafio1_output = Path("../desafio1/output/consolidado_despesas.csv")
     desafio1_cadop = Path("../desafio1/raw/Relatorio_cadop.csv")
