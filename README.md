@@ -28,6 +28,9 @@ pip install -r requirements.txt
 
 # 5. Execute o projeto
 python main.py
+
+## 6. Desative o ambiente virtual
+deactivate
  
  ``` 
 
