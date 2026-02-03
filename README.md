@@ -19,13 +19,13 @@ O padrão é sempre o mesmo, em todos os desafios:
 ```bash
 
 # 1. Entre na pasta do desafio
-cd desafio1
+cd desafio{numero_desafio} 
 
 # 2. Crie o ambiente virtual
 python3 -m venv .venv
 
 # 3. Ative o ambiente virtual
-source .venv/bin/activate
+source .venv/bin/activate #(para SO baseado em linux)
 
 # 4. Instale as dependências
 pip install -r requirements.txt
@@ -41,25 +41,17 @@ python main.py
 .
 ├── desafio1
 │   ├── main.py
+│   ├── output
+│   ├── pyrightconfig.json
+│   ├── raw
+│   ├── requirements.txt
+│   └── src
+├── desafio2
+│   ├── main.py
+│   ├── output
 │   ├── pyrightconfig.json
 │   ├── requirements.txt
 │   └── src
-│       ├── ingestion
-│       │   ├── crawler.py
-│       │   ├── downloader.py
-│       │   └── zip_extractor.py
-│       ├── __init__.py
-│       ├── processing
-│       │   ├── base_processor.py
-│       │   ├── csv_processor.py
-│       │   ├── factory_processor.py
-│       │   └── txt_processor.py
-│       └── transformation
-│           ├── accounting_transformer.py
-│           ├── cadop_cleaner.py
-│           ├── expense_calculator.py
-│           ├── output_manager.py
-│           └── pipeline.py
 └── README.md
 ```
 
@@ -112,7 +104,7 @@ python main.py
 - **Decisão**: Normalizar com `pd.to_datetime(format='mixed', errors='coerce')` e remover registros com `NaT`.
 - **Justificativa**: Garante extração correta de ano/trimestre para consolidação.
 - **Prós**: Robustez contra múltiplos formatos de data.  
-- **Contras**: Perda de registros com datas irrecuperáveis.
+- **Contras**: Potencial perda de registros com datas irrecuperáveis.
 
 ---
 
@@ -135,6 +127,6 @@ python main.py
 - **Justificativa**: Volume reduzido (< 2k registros); pandas groupby é otimizado e suficiente.
 - **Prós**: Simplicidade; alinhamento com requisitos analíticos geográficos.  
 - **Contras**: Não escalável para volumes massivos (ex: > 1M registros).
-
 ---
 
+Devido ao tempo de aprendizado dedicado às ferramentas de manipulação de dados e à complexidade da estrutura da ANS, as etapas de Banco de Dados e API não foram incluídas nesta entrega. Optei por consolidar um código funcional e limpo nas primeiras fases em vez de entregar implementações parciais sem a devida maturidade técnica.
