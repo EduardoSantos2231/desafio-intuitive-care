@@ -2,11 +2,7 @@
 
 ## Tecnologias
 > Python
-
-> POSTGRESql
-
-> VueJs
-
+  > Pandas
 ## Importante !
 
 O README está dividido em sessões de acordo com o PDF enviado por email, justificativas de determinadas
@@ -129,4 +125,11 @@ python main.py
 - **Contras**: Não escalável para volumes massivos (ex: > 1M registros).
 ---
 
-Devido ao tempo de aprendizado dedicado às ferramentas de manipulação de dados e à complexidade da estrutura da ANS, as etapas de Banco de Dados e API não foram incluídas nesta entrega. Optei por consolidar um código funcional e limpo nas primeiras fases em vez de entregar implementações parciais sem a devida maturidade técnica.
+## Entrega Final
+
+Foram implementados com robustez os dois primeiros desafios do escopo:
+
+1. **Pipeline ETL completo** com crawling resiliente, processamento por chunks e consolidação de despesas no Grupo 41
+2. **Validação e agregação analítica** com formatação brasileira completa (pontos de milhar + vírgula decimal)
+
+A entrega priorizou qualidade e correção técnica nas etapas críticas de processamento de dados, gerando saídas CSV prontas para análise em ferramentas.
