@@ -101,6 +101,9 @@ python main.py
 - **Justificativa**: Garante extração correta de ano/trimestre para consolidação.
 - **Prós**: Robustez contra múltiplos formatos de data.  
 - **Contras**: Potencial perda de registros com datas irrecuperáveis.
+### **Exemplo de saída final:**
+<img width="620" height="500" alt="image" src="https://github.com/user-attachments/assets/4b66e433-29a6-422a-b8a9-d495648b263e" />
+
 
 ---
 
@@ -123,6 +126,11 @@ python main.py
 - **Justificativa**: Volume reduzido (< 2k registros); pandas groupby é otimizado e suficiente.
 - **Prós**: Simplicidade; alinhamento com requisitos analíticos geográficos.  
 - **Contras**: Não escalável para volumes massivos (ex: > 1M registros).
+
+### **Exemplo de saída final:**
+<img width="1615" height="674" alt="image" src="https://github.com/user-attachments/assets/23b9aeae-ae1c-4f2a-a3e1-fcfdff6bb2f3" />
+
+
 ---
 
 ## Entrega Final
