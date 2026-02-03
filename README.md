@@ -2,7 +2,10 @@
 
 ## Tecnologias
 > Python
-  > Pandas
+
+> bs4
+
+> Pandas
 ## Importante !
 
 O README está dividido em sessões de acordo com o PDF enviado por email, justificativas de determinadas
