@@ -47,7 +47,6 @@ class BaseProcessor(ABC):
             logger.debug("Coluna 'CD_CONTA_CONTABIL' ausente — ignorando.")
             return pd.DataFrame()
 
-        # Trata valores nulos e espaços
         account_col = df["CD_CONTA_CONTABIL"].fillna("").astype(str).str.strip()
         mask = account_col.str.startswith(self._TARGET_ACCOUNT_PREFIX, na=False)
         return df.loc[mask]

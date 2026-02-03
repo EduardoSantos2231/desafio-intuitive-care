@@ -18,7 +18,9 @@ class OutputManager:
             self.output_path,
             index=False,
             encoding='utf-8-sig',
-            float_format='%.2f'
+            float_format='%.2f',
+            sep=";",
+            decimal=","
         )
         logger.info(f"CSV exported: {self.output_path}")
 

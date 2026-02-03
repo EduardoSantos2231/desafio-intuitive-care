@@ -23,16 +23,13 @@ class CadopCleaner:
         required_cols = ["REGISTRO_OPERADORA", "CNPJ", "Razao_Social", "Data_Registro_ANS"]
         df: DataFrame = df_cadop[required_cols].copy()
 
-        # Converte data e remove inválidas
         df["Data_Registro_ANS"] = pd.to_datetime(
             df["Data_Registro_ANS"], format="mixed", errors="coerce"
         )
         df = df.dropna(subset=["Data_Registro_ANS"])
 
-        # Ordena por data (mais recente primeiro)
         df = df.sort_values("Data_Registro_ANS", ascending=False)
 
-        # Deduplica por CNPJ (não por REGISTRO_OPERADORA!)
         df_unique = df.drop_duplicates(subset=["CNPJ"], keep="first")
 
         logger.info(f"Cleaned CADOP: {len(df_unique)} unique operators by CNPJ")    

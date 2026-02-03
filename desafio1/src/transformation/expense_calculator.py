@@ -18,13 +18,10 @@ class ExpenseCalculator:
         3. Groups by Tax ID (CNPJ) + Period and sums values.
         """
 
-        # --- Junção ---
         df_merged = self._merge_data(df_contabil, df_cadop_clean)
 
-        # --- Cálculo de despesas ---
         df_with_expenses = self._calculate_expenses(df_merged)
 
-        # --- Consolidação por período ---
         df_consolidated = self._consolidate_by_period(df_with_expenses)
 
         return df_consolidated
@@ -42,7 +39,6 @@ class ExpenseCalculator:
             how="left"
         )
 
-        # Trata não encontrados
         missing = merged["CNPJ"].isna()
         if  missing.any():
             logger.warning(f"Operadoras not found: {missing.sum()}")
@@ -56,7 +52,6 @@ class ExpenseCalculator:
         df = df.copy()
         df["ValorDespesas"] = df["VL_SALDO_FINAL"] - df["VL_SALDO_INICIAL"]
 
-        # Remove apenas NaN (mantém negativos!)
         valid = df["ValorDespesas"].notna()
         logger.info(f"valid registers found: {valid.sum()}/{len(df)}")
         return df[valid].copy()
@@ -74,7 +69,6 @@ class ExpenseCalculator:
             "ValorDespesas": "sum"
         })
 
-        # Renomeia e ordena
         result = grouped.rename(columns={"Razao_Social": "RazaoSocial"})
         result = result[["CNPJ", "RazaoSocial", "Trimestre", "Ano", "ValorDespesas"]]
         

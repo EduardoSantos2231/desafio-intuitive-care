@@ -11,6 +11,25 @@ logger = logging.getLogger(__name__)
 
 
 class ExpenseConsolidationPipeline:
+    
+    def _apply_brazilian_formatting(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Aplica formatação brasileira às colunas numéricas monetárias.
+        Converte valores float para string no formato BR (ex: 1351.00 → "1.351,00")
+        """
+        df = df.copy()
+        
+        if "ValorDespesas" in df.columns:
+            df["ValorDespesas"] = pd.to_numeric(df["ValorDespesas"], errors="coerce")
+            
+            df["ValorDespesas"] = df["ValorDespesas"].apply(
+                lambda x: (
+                    f"{abs(x):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                    if pd.notna(x) else ""
+                )
+            ).apply(lambda x: f"-{x}" if x.startswith("-") else x)  
+        return df
+
     def run(
         self,
         accounting_file: Path,
@@ -38,21 +57,21 @@ class ExpenseConsolidationPipeline:
         
         logger.info(f"Data loaded: {len(df_contabil)} accounting, {len(df_cadop)} CADOP")
 
-        # Clean CADOP
         cadop_cleaner = CadopCleaner()
         df_cadop_clean = cadop_cleaner.clean(df_cadop)
 
-        # Process accounting data
+        
         acc_processor = AccountingProcessor()
         df_contabil = acc_processor.parse_dates(df_contabil)
         df_contabil = acc_processor.extract_period(df_contabil)
         df_contabil = acc_processor.ensure_numeric_columns(df_contabil)
 
-        # Calculate and consolidate
+        
         calculator = ExpenseCalculator()
         df_final = calculator.calculate_and_consolidate(df_contabil, df_cadop_clean)
 
-        # Output
+        df_final = self._apply_brazilian_formatting(df_final)
+
         output_file.parent.mkdir(exist_ok=True)
         output_manager = OutputManager(output_file)
         output_manager.export_to_csv(df_final)
